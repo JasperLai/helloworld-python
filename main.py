@@ -2,7 +2,7 @@ def hello_world():
     """
     A simple function that prints 'Hello, World!' to the console.
     """
-    print("hello huihui")
+    print("hello codex")
 
 def greet(name: str) -> str:
     """
