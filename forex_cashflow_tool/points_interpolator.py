@@ -197,11 +197,12 @@ class PointsInterpolator:
                           end_date: datetime.date) -> Optional[Decimal]:
         """
         根据起息日和到期日插值计算远期点数
+        使用"Value Date -> 天数 -> 线性插值"方法
         
         Args:
             pair: 货币对
-            start_date: 起息日
-            end_date: 到期日
+            start_date: 起息日 (Value Date)
+            end_date: 到期日 (Mat Date)
             
         Returns:
             插值计算的远期点数，如果无法计算则返回None
@@ -211,45 +212,52 @@ class PointsInterpolator:
         
         tenor_data = self.points_data[pair]
         
-        # 找到最接近的两个点进行线性插值
-        relevant_data = [td for td in tenor_data if td['settlement_date'] >= start_date]
+        # 计算目标天数，表示从 Value Date 到 Mat Date 的天数差
+        target_days = (end_date - start_date).days
         
-        if not relevant_data:
+        # 构建天数-点数序列，基于报价的结算日期与 Value Date 的天数差
+        series = []
+        for td in tenor_data:
+            # 计算每条报价的天数差，基于报价的结算日期与 Value Date
+            q_days = (td['settlement_date'] - start_date).days
+            # 只考虑结算日期晚于 Value Date 的报价，避免无效或负天数数据
+            if q_days <= 0:
+                continue
+            # 计算 mid_points，作为 bid_points 和 ask_points 的平均值，减少买卖价差影响
+            bid_points = td['bid_points']
+            ask_points = td['ask_points']
+            if bid_points is not None and ask_points is not None:
+                mid = (bid_points + ask_points) / Decimal("2")
+                # 将天数和对应 mid_points 组成元组，准备插值数据序列
+                series.append((q_days, mid))
+        
+        if not series:
             return None
         
-        # 按日期排序
-        relevant_data.sort(key=lambda x: x['settlement_date'])
+        # 按天数升序排列，便于后续查找插值区间
+        series.sort(key=lambda x: x[0])
         
-        # 如果到期日在第一个点之前，使用最近的点
-        if end_date <= relevant_data[0]['settlement_date']:
-            return relevant_data[0]['bid_points'] or relevant_data[0]['ask_points']
+        # clamp 边界处理：
+        # 如果目标天数小于最小报价天数，直接返回最小端点点数，避免外推
+        if target_days <= series[0][0]:
+            return series[0][1]
         
-        # 如果到期日在最后一个点之后，使用最后的点
-        if end_date >= relevant_data[-1]['settlement_date']:
-            return relevant_data[-1]['bid_points'] or relevant_data[-1]['ask_points']
+        # 如果目标天数大于最大报价天数，直接返回最大端点点数，避免外推
+        if target_days >= series[-1][0]:
+            return series[-1][1]
         
-        # 找到相邻的两个点进行线性插值
-        for i in range(len(relevant_data) - 1):
-            if relevant_data[i]['settlement_date'] <= end_date <= relevant_data[i+1]['settlement_date']:
-                d1 = relevant_data[i]['settlement_date']
-                d2 = relevant_data[i+1]['settlement_date']
-                p1 = relevant_data[i]['bid_points'] or relevant_data[i]['ask_points']
-                p2 = relevant_data[i+1]['bid_points'] or relevant_data[i+1]['ask_points']
-                
-                if p1 is None or p2 is None:
-                    continue
-                
-                # 计算时间权重
-                total_days = (d2 - d1).days
-                if total_days == 0:
-                    return p1
-                
-                elapsed_days = (end_date - d1).days
-                weight = Decimal(elapsed_days) / Decimal(total_days)
-                
-                interpolated_points = p1 + (p2 - p1) * weight
-                return interpolated_points
+        # 线性插值计算：
+        # 在相邻两个报价点之间，计算目标天数对应的点数
+        # 插值公式：p = p0 + (p1 - p0) * w
+        # 其中权重 w = (target_days - d0) / (d1 - d0)，表示目标天数在区间中的相对位置
+        for (d0, p0), (d1, p1) in zip(series, series[1:]):
+            if d0 <= target_days <= d1:
+                if d1 == d0:  # 避免除零错误，若两个点天数相同则直接返回 p0
+                    return p0
+                w = Decimal(target_days - d0) / Decimal(d1 - d0)
+                return p0 + (p1 - p0) * w
         
+        # 若未能找到合适区间进行插值，返回None
         return None
     
     def get_spot_rate(self, pair: str) -> Optional[Decimal]:
