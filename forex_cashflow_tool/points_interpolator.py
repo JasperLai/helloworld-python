@@ -34,20 +34,107 @@ class PointsInterpolator:
         with open(points_file, 'r', encoding='utf-8-sig') as f:
             content = f.read().strip()
         
+        # 尝试按原有多部分格式解析
         sections = content.split('\n\n')
         
-        for section in sections:
-            lines = section.strip().split('\n')
-            if not lines:
-                continue
+        # 检查是否为标准CSV格式（第一行包含列标题）
+        first_line = content.split('\n')[0]
+        if 'Tenor' in first_line and 'SettlementDate' in first_line:
+            # 这是标准CSV格式，需要推断货币对
+            self._parse_standard_csv(content)
+        else:
+            # 按原有多部分格式解析
+            for section in sections:
+                lines = section.strip().split('\n')
+                if not lines:
+                    continue
+                    
+                # 第一行是货币对
+                pair = lines[0].strip()
+                if len(lines) <= 1:
+                    continue
                 
-            # 第一行是货币对
-            pair = lines[0].strip()
-            if len(lines) <= 1:
-                continue
+                # 解析后续行
+                reader = csv.DictReader(lines[1:])
+                tenor_data = []
+                
+                for row in reader:
+                    if 'Tenor' in row and 'SettlementDate' in row:
+                        tenor = row['Tenor'].strip()
+                        settlement_date_str = row['SettlementDate'].strip()
+                        
+                        # 尝试解析结算日期
+                        try:
+                            settlement_date = datetime.datetime.strptime(settlement_date_str, '%Y/%m/%d').date()
+                        except ValueError:
+                            try:
+                                settlement_date = datetime.datetime.strptime(settlement_date_str, '%Y-%m-%d').date()
+                            except ValueError:
+                                continue
+                        
+                        # 提取点数
+                        bid_points = self._safe_parse_decimal(row.get('BidPoints', ''))
+                        ask_points = self._safe_parse_decimal(row.get('AskPoints', ''))
+                        bid_outright = self._safe_parse_decimal(row.get('BidOutright', ''))
+                        ask_outright = self._safe_parse_decimal(row.get('AskOutright', ''))
+                        
+                        tenor_data.append({
+                            'tenor': tenor,
+                            'settlement_date': settlement_date,
+                            'bid_points': bid_points,
+                            'ask_points': ask_points,
+                            'bid_outright': bid_outright,
+                            'ask_outright': ask_outright
+                        })
+                        
+                        # 如果是即期(Spot)，存储即期汇率
+                        if tenor == 'SP':
+                            # 使用中间价作为即期汇率
+                            if bid_outright and ask_outright:
+                                spot_rate = (bid_outright + ask_outright) / 2
+                                self.spot_rates[pair] = spot_rate
+                
+                if tenor_data:
+                    self.points_data[pair] = sorted(tenor_data, key=lambda x: x['settlement_date'])
+    
+    def _parse_standard_csv(self, content: str):
+        """
+        解析标准CSV格式的远期点数据
+        
+        Args:
+            content: CSV内容
+        """
+        lines = content.strip().split('\n')
+        
+        # 检查第一行是否包含货币对信息
+        header = lines[0]
+        if 'EURUSD' in header or ('Tenor' in header and 'SettlementDate' in header):
+            # 从列名中推断货币对，比如 "EURUSD Tenor" 可以提取出 EURUSD
+            if 'EURUSD' in header:
+                inferred_pair = 'EURUSD'
+            elif 'USD' in header and '/' in header:
+                # 如果标题中有类似 "USD/CAD Tenor" 的格式
+                parts = header.split()
+                if len(parts) > 0:
+                    potential_pair = parts[0]
+                    if '/' in potential_pair:
+                        inferred_pair = potential_pair.replace('Tenor', '').strip()
+                    else:
+                        # 从完整标题中尝试提取货币对
+                        for part in parts:
+                            if '/' in part:
+                                inferred_pair = part.replace('Tenor', '').strip()
+                                break
+                        else:
+                            inferred_pair = 'UNKNOWN'
+                else:
+                    inferred_pair = 'UNKNOWN'
+            else:
+                # 尝试从数据中推断货币对
+                inferred_pair = 'UNKNOWN'
             
-            # 解析后续行
-            reader = csv.DictReader(lines[1:])
+            # 解析CSV内容
+            reader = csv.DictReader(lines)
             tenor_data = []
             
             for row in reader:
@@ -84,10 +171,10 @@ class PointsInterpolator:
                         # 使用中间价作为即期汇率
                         if bid_outright and ask_outright:
                             spot_rate = (bid_outright + ask_outright) / 2
-                            self.spot_rates[pair] = spot_rate
+                            self.spot_rates[inferred_pair] = spot_rate
             
             if tenor_data:
-                self.points_data[pair] = sorted(tenor_data, key=lambda x: x['settlement_date'])
+                self.points_data[inferred_pair] = sorted(tenor_data, key=lambda x: x['settlement_date'])
     
     def _safe_parse_decimal(self, s: str) -> Optional[Decimal]:
         """
