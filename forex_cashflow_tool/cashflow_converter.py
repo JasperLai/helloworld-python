@@ -537,8 +537,16 @@ class CashFlowConverter:
             # 确定时间段
             if cf_date <= today:
                 period = 'Today'
-            elif end_date and cf_date <= end_date:
-                period = [k for k, v in periods.items() if v == end_date][0]
+            elif cf_date <= periods['Next 1W']:
+                period = 'Next 1W'
+            elif cf_date <= periods['Next 1M']:
+                period = 'Next 1M'
+            elif cf_date <= periods['Next 3M']:
+                period = 'Next 3M'
+            elif cf_date <= periods['Next 6M']:
+                period = 'Next 6M'
+            elif cf_date <= periods['Next 1Y']:
+                period = 'Next 1Y'
             else:
                 period = 'Beyond 1Y'
             
