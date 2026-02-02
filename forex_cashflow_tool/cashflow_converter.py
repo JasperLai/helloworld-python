@@ -326,11 +326,15 @@ class CashFlowConverter:
                         divisor = points_divisor_by_pair(security)
                         far_rate = near_rate + (rate_price / Decimal(divisor))
                     
-                    # 根据需求文档，FX Swap远端现金流为:
+                    # 根据需求文档和测试用例，FX Swap远端现金流为:
                     # - 基础货币: -Amount1
-                    # - 计价货币: -Amount1 × far_rate
+                    # - 计价货币: 符号与Amount2相反，并使用远期汇率计算
                     far_base_amount = -amount1  # 远端基础货币现金流为-Amt1
-                    far_quote_amount = -amount1 * far_rate  # 远端计价货币现金流为-Amt1 × far_rate
+                    # 远端计价货币现金流符号应与近端Amount2相反，但使用远期汇率计算金额
+                    if amount2 > 0:  # 近端买入计价货币，则远端卖出计价货币（负值）
+                        far_quote_amount = -abs(amount1) * far_rate
+                    else:  # 近端卖出计价货币，则远端买入计价货币（正值）
+                        far_quote_amount = abs(amount1) * far_rate
                     
                     # 远端现金流
                     cashflows.extend([
