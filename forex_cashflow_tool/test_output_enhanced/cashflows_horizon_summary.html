@@ -91,7 +91,15 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {{PERIOD_TABLE}}
+                        <tr><th>Period</th><th>AUD</th><th>CAD</th><th>CHF</th><th>CNY</th><th>EUR</th><th>GBP</th><th>JPY</th><th>USD</th></tr>
+<tr><td>Today</td><td>2,000,000.00</td><td>3,000,000.00</td><td>-2,800,000.00</td><td>0.00</td><td>1,000,000.00</td><td>5,000,000.00</td><td>-600,000,000.00</td><td>-2,500,000.00</td></tr>
+<tr><td>Next 1W</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td></tr>
+<tr><td>Next 1M</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td></tr>
+<tr><td>Next 3M</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td></tr>
+<tr><td>Next 6M</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td></tr>
+<tr><td>Next 1Y</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td></tr>
+<tr><td>Beyond 1Y</td><td>0.00</td><td>-3,000,000.00</td><td>2,800,000.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td></tr>
+
                     </tbody>
                 </table>
             </div>
@@ -133,13 +141,13 @@
             // 页面加载完成后执行
             document.addEventListener('DOMContentLoaded', function() {
                 // P&L数据 (从模板传入)
-                const pnlItems = {{PNL_ITEMS}};
+                const pnlItems = [];
                 // 修复fxRates格式
-                const fxRatesRaw = "{{FX_RATES}}";
+                const fxRatesRaw = "[['EURUSD', 1.17755], ['USDJPY', 149.8195], ['USDCNY', 7.010615], ['GBPJPY', 187.385]]";
                 let fxRates = [];
                 try {
                     // 尝试直接解析为数组
-                    fxRates = {{FX_RATES}};
+                    fxRates = [['EURUSD', 1.17755], ['USDJPY', 149.8195], ['USDCNY', 7.010615], ['GBPJPY', 187.385]];
                 } catch(e) {
                     console.log("Failed to parse fxRates as array");
                 }
