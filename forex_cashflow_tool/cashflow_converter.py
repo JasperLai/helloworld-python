@@ -191,6 +191,15 @@ class CashFlowConverter:
         divisor = points_divisor_by_pair(pair)
         pnl = -amount1 * (curve_points - rate_price) / Decimal(divisor)
         
+        # 输出详细计算步骤
+        print(f"P&L计算详情: 交易类型={deal_type}, 货币对={pair}")
+        print(f"  Amount1: {amount1}")
+        print(f"  交易记录中的点数: {rate_price}")
+        print(f"  曲线插值远期点数: {curve_points}")
+        print(f"  除数: {divisor}")
+        print(f"  计算: -{amount1} × ({curve_points} - {rate_price}) / {divisor} = {pnl}")
+        print(f"  损益归属货币: {quote_ccy}")
+        
         return quote_ccy, pnl
     
     def process_trade_detail(self, input_file: str) -> List[Dict[str, Any]]:
