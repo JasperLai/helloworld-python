@@ -263,8 +263,8 @@ class CashFlowConverter:
                 
                 elif deal_type.lower() == 'fx swap':
                     # FX Swap: 
-                    # - 近端 (Value Date): -Amount1 + (-Amount2)  (与交易方向相反)
-                    # - 远端 (Mat. Date): +Amount1 + (+Amount1 × far_rate)
+                    # - 近端 (Value Date): Amount1 (基础货币) + Amount2 (计价货币)
+                    # - 远端 (Mat. Date): -Amount1 (基础货币) + (-Amount1 × far_rate) (计价货币)
                     
                     if not mat_date:
                         print(f"警告: FX Swap {deal_id} 缺少到期日")
@@ -274,19 +274,19 @@ class CashFlowConverter:
                         print(f"警告: FX Swap {deal_id} 的Amount1为0")
                         continue
                     
-                    # 近端现金流 (反向)
+                    # 近端现金流
                     cashflows.extend([
                         {
                             'date': value_date,
                             'currency': base_ccy,
-                            'amount': normalize_cashflow(base_ccy, -amount1),
+                            'amount': normalize_cashflow(base_ccy, amount1),
                             'deal_id': deal_id,
                             'type': 'fx_swap_near'
                         },
                         {
                             'date': value_date,
                             'currency': quote_ccy,
-                            'amount': normalize_cashflow(quote_ccy, -amount2),
+                            'amount': normalize_cashflow(quote_ccy, amount2),
                             'deal_id': deal_id,
                             'type': 'fx_swap_near'
                         }
@@ -295,7 +295,6 @@ class CashFlowConverter:
                     # 计算远端现金流
                     # 远端汇率计算: far_rate = near_rate + (points / divisor)
                     near_rate = amount2 / amount1 if amount1 != 0 else Decimal('0')
-                    far_rate = near_rate
                     
                     # 尝试使用远期点插值计算远端汇率
                     if self.points_interpolator:
@@ -317,11 +316,20 @@ class CashFlowConverter:
                                 if quote_ccy_pnl not in pnls:
                                     pnls[quote_ccy_pnl] = Decimal('0')
                                 pnls[quote_ccy_pnl] += pnl_amount
+                        else:
+                            # 插值失败，回退使用交易明细中的Rate/Price
+                            divisor = points_divisor_by_pair(formatted_pair)
+                            far_rate = near_rate + (rate_price / Decimal(divisor))
+                    else:
+                        # 没有远期点插值器，回退使用交易明细中的Rate/Price
+                        divisor = points_divisor_by_pair(security)
+                        far_rate = near_rate + (rate_price / Decimal(divisor))
                     
-                    # 计算远端计价货币现金流: 基础货币金额 * 远期汇率
-                    # 对于FX Swap，远端现金流应与近端现金流相反
-                    far_base_amount = -(-amount1)  # 远端基础货币现金流（与近端相反）
-                    far_quote_amount = far_base_amount * far_rate  # 远端计价货币现金流
+                    # 根据需求文档，FX Swap远端现金流为:
+                    # - 基础货币: -Amount1
+                    # - 计价货币: -Amount1 × far_rate
+                    far_base_amount = -amount1  # 远端基础货币现金流为-Amt1
+                    far_quote_amount = -amount1 * far_rate  # 远端计价货币现金流为-Amt1 × far_rate
                     
                     # 远端现金流
                     cashflows.extend([
