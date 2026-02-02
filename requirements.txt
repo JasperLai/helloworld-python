@@ -1,1 +1,4 @@
-# No external dependencies for this simple project
+# 项目依赖
+# 主项目不需要外部依赖，只使用Python标准库
+
+# Forex Cashflow Tool 也不需要外部依赖，只使用Python标准库

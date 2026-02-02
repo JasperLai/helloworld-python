@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>现金流报告</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .header {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .filter-section {
+            margin-bottom: 20px;
+        }
+        .filter-label {
+            margin-right: 10px;
+        }
+        .summary-card {
+            background-color: #f0f8ff;
+            border: 1px solid #b0c4de;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="header">外汇交易现金流报告</h1>
+    
+    <div class="filter-section">
+        <label class="filter-label">过滤日期:</label>
+        <input type="date" id="dateFilter" onchange="filterTable()">
+        <span>(显示此日期之后的现金流)</span>
+    </div>
+    
+    <div class="summary-card">
+        <h3>现金流汇总</h3>
+        <p>总记录数: <span id="totalCount">{{total_records}}</span></p>
+        <p>覆盖期间: <span id="period">{{period}}</span></p>
+    </div>
+    
+    <table id="cashflowTable">
+        <thead>
+            <tr>
+                <th>日期</th>
+                <th>货币</th>
+                <th>现金流</th>
+                <th>交易ID</th>
+                <th>交易类型</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{cashflows_table}}
+        </tbody>
+    </table>
+    
+    <script>
+        function filterTable() {
+            const dateFilter = document.getElementById('dateFilter').value;
+            const table = document.getElementById('cashflowTable');
+            const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+            
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const dateCell = row.getElementsByTagName('td')[0];
+                const rowDate = dateCell.textContent;
+                
+                // 将日期字符串转换为Date对象进行比较
+                const rowDateObj = new Date(rowDate.split('/').reverse().join('-')); // DD/MM/YYYY -> YYYY-MM-DD
+                const filterDateObj = new Date(dateFilter);
+                
+                if (dateFilter === "" || rowDateObj >= filterDateObj) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        }
+        
+        // 默认隐藏今天及之前的现金流
+        window.onload = function() {
+            const today = new Date();
+            const dd = String(today.getDate()).padStart(2, '0');
+            const mm = String(today.getMonth() + 1).padStart(2, '0'); // January is 0!
+            const yyyy = today.getFullYear();
+            const todayStr = yyyy + '-' + mm + '-' + dd;
+            
+            document.getElementById('dateFilter').value = todayStr;
+            filterTable();
+        };
+    </script>
+</body>
+</html>

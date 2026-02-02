@@ -1,0 +1,6 @@
+Deal Id,Cpty.,Type of Deal,Folder,Security,Amount1,Amount2,Trade Date,Value Date,Mat. Date,User,Type,Rate/Price,Quantity,Comments,Option Type,Strike,Last Date
+VAL_IMP:7750129,ABC Bank,Spot,FX_TRADING,EUR/USD,1000000,-1100000,01/12/2025,03/12/2025,,Trader1,FX,"1.1000",,"Sample Spot Trade",,,
+VAL_IMP:2016522,XYZ Corp,FX Swap,FX_SWAP,EUR/USD,-500000,550000,01/12/2025,03/12/2025,03/03/2026,Trader2,FX Swap,"-0.5",,"Sample FX Swap",,,
+VAL_IMP:8850130,DEF Fund,Outright Forward,FX_FORWARD,EUR/USD,2000000,-2200000,,05/01/2026,05/01/2026,Trader3,Forward,"1.1000",,"Sample Forward",,,
+VAL_IMP:9950140,GHI Bank,Spot,RISK_PORTFOLIO,USD/CNY,5000000,-35000000,02/12/2025,04/12/2025,,Trader4,FX,"7.0000",,"USD/CNY Spot",,,
+VAL_IMP:1050150,JKL Corp,FX Swap,JSH_SWPPOS,EUR/JPY,-1000000,120000000,03/12/2025,05/12/2025,05/06/2026,Trader5,FX Swap,"120.0",,"EUR/JPY Swap (Will be filtered)",,,

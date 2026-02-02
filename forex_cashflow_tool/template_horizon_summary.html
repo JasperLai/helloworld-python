@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>现金流期限汇总报告</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .header {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .summary-section {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .summary-card {
+            background-color: #f0f8ff;
+            border: 1px solid #b0c4de;
+            border-radius: 5px;
+            padding: 15px;
+            width: 30%;
+        }
+        .chart-container {
+            margin-top: 30px;
+            height: 400px;
+        }
+        .currency-breakdown {
+            margin-top: 20px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1 class="header">外汇交易现金流期限汇总报告</h1>
+    
+    <div class="summary-section">
+        <div class="summary-card">
+            <h3>总体汇总</h3>
+            <p>总现金流: <span id="totalCashflow">{{total_cashflow}}</span></p>
+            <p>货币种类: <span id="currencyCount">{{currency_count}}</span></p>
+            <p>时间跨度: <span id="timeSpan">{{time_span}}</span></p>
+        </div>
+        
+        <div class="summary-card">
+            <h3>损益汇总 (P&L)</h3>
+            <div id="pnlSummary">
+                {{pnl_data}}
+            </div>
+        </div>
+        
+        <div class="summary-card">
+            <h3>即期汇率</h3>
+            <div id="fxRates">
+                {{fx_rates}}
+            </div>
+        </div>
+    </div>
+    
+    <div class="currency-breakdown">
+        <h2>按货币分类现金流</h2>
+        <table id="currencyTable">
+            <thead>
+                <tr>
+                    <th>货币</th>
+                    <th>总流入</th>
+                    <th>总流出</th>
+                    <th>净现金流</th>
+                    <th>交易笔数</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{currency_breakdown}}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="chart-container">
+        <canvas id="cashflowChart"></canvas>
+    </div>
+    
+    <div class="cashflow-details">
+        <h2>详细现金流</h2>
+        <table id="detailedCashflowTable">
+            <thead>
+                <tr>
+                    <th>日期</th>
+                    <th>货币</th>
+                    <th>现金流</th>
+                    <th>交易ID</th>
+                    <th>交易类型</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{cashflows}}
+            </tbody>
+        </table>
+    </div>
+    
+    <script>
+        // 这里可以添加JavaScript代码来处理图表等交互功能
+        document.addEventListener('DOMContentLoaded', function() {
+            // 示例图表数据，实际使用时会从后端传入
+            const ctx = document.getElementById('cashflowChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['1周内', '2-4周', '1-3月', '3-6月', '6-12月', '1年以上'],
+                    datasets: [{
+                        label: '现金流总额',
+                        data: [{{chart_data}}],
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
