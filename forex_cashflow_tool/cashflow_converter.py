@@ -263,8 +263,8 @@ class CashFlowConverter:
                 
                 elif deal_type.lower() == 'fx swap':
                     # FX Swap: 
-                    # - 近端 (Value Date): Amount1 + Amount2
-                    # - 远端 (Mat. Date): -Amount1 + (-Amount1 × far_rate)
+                    # - 近端 (Value Date): -Amount1 + (-Amount2)  (与交易方向相反)
+                    # - 远端 (Mat. Date): +Amount1 + (+Amount1 × far_rate)
                     
                     if not mat_date:
                         print(f"警告: FX Swap {deal_id} 缺少到期日")
@@ -274,19 +274,19 @@ class CashFlowConverter:
                         print(f"警告: FX Swap {deal_id} 的Amount1为0")
                         continue
                     
-                    # 近端现金流
+                    # 近端现金流 (反向)
                     cashflows.extend([
                         {
                             'date': value_date,
                             'currency': base_ccy,
-                            'amount': normalize_cashflow(base_ccy, amount1),
+                            'amount': normalize_cashflow(base_ccy, -amount1),
                             'deal_id': deal_id,
                             'type': 'fx_swap_near'
                         },
                         {
                             'date': value_date,
                             'currency': quote_ccy,
-                            'amount': normalize_cashflow(quote_ccy, amount2),
+                            'amount': normalize_cashflow(quote_ccy, -amount2),
                             'deal_id': deal_id,
                             'type': 'fx_swap_near'
                         }
@@ -299,38 +299,43 @@ class CashFlowConverter:
                     
                     # 尝试使用远期点插值计算远端汇率
                     if self.points_interpolator:
+                        # 转换货币对格式：USD/CAD -> USDCAD
+                        formatted_pair = security.replace('/', '')
                         curve_points = self.points_interpolator.interpolate_points(
-                            security, value_date, mat_date
+                            formatted_pair, value_date, mat_date
                         )
                         
                         if curve_points is not None:
-                            divisor = points_divisor_by_pair(security)
+                            divisor = points_divisor_by_pair(formatted_pair)
                             far_rate = near_rate + (curve_points / Decimal(divisor))
                             
                             # 计算P&L
                             quote_ccy_pnl, pnl_amount = self.calculate_pnl(
-                                deal_type, security, amount1, rate_price, curve_points
+                                deal_type, formatted_pair, amount1, rate_price, curve_points
                             )
                             if quote_ccy_pnl and pnl_amount:
                                 if quote_ccy_pnl not in pnls:
                                     pnls[quote_ccy_pnl] = Decimal('0')
                                 pnls[quote_ccy_pnl] += pnl_amount
                     
-                    far_amount2 = -amount1 * far_rate
+                    # 计算远端计价货币现金流: 基础货币金额 * 远期汇率
+                    # 对于FX Swap，远端现金流应与近端现金流相反
+                    far_base_amount = -(-amount1)  # 远端基础货币现金流（与近端相反）
+                    far_quote_amount = far_base_amount * far_rate  # 远端计价货币现金流
                     
                     # 远端现金流
                     cashflows.extend([
                         {
                             'date': mat_date,
                             'currency': base_ccy,
-                            'amount': normalize_cashflow(base_ccy, -amount1),
+                            'amount': normalize_cashflow(base_ccy, far_base_amount),
                             'deal_id': deal_id,
                             'type': 'fx_swap_far'
                         },
                         {
                             'date': mat_date,
                             'currency': quote_ccy,
-                            'amount': normalize_cashflow(quote_ccy, far_amount2),
+                            'amount': normalize_cashflow(quote_ccy, far_quote_amount),
                             'deal_id': deal_id,
                             'type': 'fx_swap_far'
                         }
