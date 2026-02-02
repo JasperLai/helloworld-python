@@ -294,7 +294,8 @@ class CashFlowConverter:
                     
                     # 计算远端现金流
                     # 远端汇率计算: far_rate = near_rate + (points / divisor)
-                    near_rate = amount2 / amount1 if amount1 != 0 else Decimal('0')
+                    # 注意：near_rate需要取绝对值
+                    near_rate = abs(amount2 / amount1) if amount1 != 0 else Decimal('0')
                     
                     # 尝试使用远期点插值计算远端汇率
                     if self.points_interpolator:
